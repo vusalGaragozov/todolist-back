@@ -8,8 +8,8 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
-const MongoStore = require('connect-mongo').default(session);
-require('dotenv').config({path: "./env"});
+const MongoStore = require('connect-mongodb-session')(session);
+require('dotenv').config({ path: "./.env" });
 
 app.use(express.json());
 
@@ -25,30 +25,33 @@ mongoose
     console.error('Error connecting to MongoDB:', error);
   });
 
-  app.use(cors({
-    origin: "http://localhost:3001",
-    credentials: true,
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
-  }));
-  
+const store = new MongoStore({
+  uri: process.env.MONGO_URI,
+  collection: 'sessions', // The name of the collection where the sessions will be stored
+  mongooseConnection: mongoose.connection,
+  autoRemove: 'interval',
+  autoRemoveInterval: 60, // Remove expired sessions every 1 minute
+});
 
-  app.use(
-    session({
-      secret: 'secret',
-      resave: true,
-      saveUninitialized: true,
-      store: new MongoStore({ 
-        mongooseConnection: mongoose.connection,
-        autoRemove: 'interval',
-        autoRemoveInterval: 60, // Remove expired sessions every 1 minute
-      }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: true,
-        sameSite: 'lax',
-      },
-    })
+app.use(cors({
+  origin: "http://localhost:3001",
+  credentials: true,
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
+}));
+
+app.use(
+  session({
+    secret: 'secret',
+    resave: true,
+    saveUninitialized: true,
+    store: store,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'lax',
+    },
+  })
 );
 
 app.use(passport.initialize());
@@ -161,7 +164,6 @@ app.get('/check-auth', (req, res) => {
     res.status(200).json({ user: null, isAuthenticated: false });
   }
 });
-
 
 app.get('/tasks', ensureAuthenticated, async (req, res) => {
   try {
