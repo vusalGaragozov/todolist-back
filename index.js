@@ -8,8 +8,8 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
-require('dotenv').config({path: "./back/.env"});
+const MongoStore = require('connect-mongo').default(session);
+require('dotenv').config({path: "./env"});
 
 app.use(express.json());
 
@@ -32,19 +32,23 @@ mongoose
   }));
   
 
-app.use(
-  session({
-    secret: 'secret',
-    resave: true,
-    saveUninitialized: true,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-    cookie: {
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      sameSite: 'lax',
-    },
-  })
+  app.use(
+    session({
+      secret: 'secret',
+      resave: true,
+      saveUninitialized: true,
+      store: new MongoStore({ 
+        mongooseConnection: mongoose.connection,
+        autoRemove: 'interval',
+        autoRemoveInterval: 60, // Remove expired sessions every 1 minute
+      }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax',
+      },
+    })
 );
 
 app.use(passport.initialize());
