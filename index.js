@@ -34,7 +34,7 @@ const store = new MongoStore({
 });
 
 app.use(cors({
-  origin: "https://todolist-front-livid.vercel.app",
+  origin: "http://localhost:3001",
   credentials: true,
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
 }));
@@ -157,10 +157,10 @@ app.post('/login', (req, res, next) => {
 
 app.get('/check-auth', (req, res) => {
   if (req.isAuthenticated()) {
-    res.header('Access-Control-Allow-Origin', 'https://todolist-front-livid.vercel.app');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
     res.status(200).json({ user: req.user, isAuthenticated: true });
   } else {
-    res.header('Access-Control-Allow-Origin', 'https://todolist-front-livid.vercel.app');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
     res.status(200).json({ user: null, isAuthenticated: false });
   }
 });
@@ -208,7 +208,7 @@ app.delete('/tasks/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Update the listen function to use the dynamic port assigned by Heroku
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
