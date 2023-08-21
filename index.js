@@ -198,6 +198,34 @@ app.post('/tasks', ensureAuthenticated, async (req, res) => {
   }
 });
 
+app.put('/tasks/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const { shortDescription, longDescription, deadline, priority, assignedBy } = req.body;
+    
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      {
+        shortDescription,
+        longDescription,
+        deadline,
+        priority,
+        assignedBy,
+      },
+      { new: true } // Return the updated task
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json(updatedTask);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 app.delete('/tasks/:id', ensureAuthenticated, async (req, res) => {
   try {
     await Task.findByIdAndRemove(req.params.id);
