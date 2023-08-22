@@ -4,6 +4,7 @@ const app = express();
 const Task = require('./src/task');
 const User = require('./src/user');
 const mongoose = require('mongoose');
+const Account = require('./src/accounts')
 const bcrypt = require('bcrypt');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
@@ -34,7 +35,7 @@ const store = new MongoStore({
 });
 
 app.use(cors({
-  origin: "http://localhost:3001/",
+  origin: "http://localhost:3001",
   credentials: true,
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
 }));
@@ -69,6 +70,29 @@ app.post('/logout', (req, res) => {
     });
   });
 });
+
+app.post('/api/accounts', ensureAuthenticated, async (req, res) => {
+  try {
+    const newAccount = req.body;
+    const account = new Account(newAccount);
+    await account.save();
+    res.status(201).json(account);
+  } catch (error) {
+    console.error('Error adding account:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/accounts', ensureAuthenticated, async (req, res) => {
+  try {
+    const accounts = await Account.find();
+    res.status(200).json(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 passport.use(
   new LocalStrategy(
@@ -157,10 +181,10 @@ app.post('/login', (req, res, next) => {
 
 app.get('/check-auth', (req, res) => {
   if (req.isAuthenticated()) {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3001/');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
     res.status(200).json({ user: req.user, isAuthenticated: true });
   } else {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:3001/');
+    res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
     res.status(200).json({ user: null, isAuthenticated: false });
   }
 });
