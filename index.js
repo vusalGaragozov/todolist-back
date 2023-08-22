@@ -260,6 +260,20 @@ app.delete('/tasks/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
+app.delete('/api/accounts/:id', ensureAuthenticated, async (req, res) => {
+  try {
+    const deletedAccount = await Account.findByIdAndRemove(req.params.id);
+    if (!deletedAccount) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+    res.json({ message: 'Account deleted' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

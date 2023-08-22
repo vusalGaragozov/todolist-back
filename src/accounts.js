@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const accountSchema = new mongoose.Schema({
-  reportType: String,
+  report: String,
   class: String,
   caption: String,
   fsLine: String,
