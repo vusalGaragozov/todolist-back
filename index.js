@@ -34,7 +34,7 @@ const store = new MongoStore({
 });
 
 app.use(cors({
-  origin: "https://todolist-front-livid.vercel.app/",
+  origin: "https://todolist-front-6fcfa8aea561.herokuapp.com/",
   credentials: true,
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept"],
 }));
@@ -157,10 +157,10 @@ app.post('/login', (req, res, next) => {
 
 app.get('/check-auth', (req, res) => {
   if (req.isAuthenticated()) {
-    res.header('Access-Control-Allow-Origin', 'https://todolist-front-livid.vercel.app/');
+    res.header('Access-Control-Allow-Origin', 'https://todolist-front-6fcfa8aea561.herokuapp.com/');
     res.status(200).json({ user: req.user, isAuthenticated: true });
   } else {
-    res.header('Access-Control-Allow-Origin', 'https://todolist-front-livid.vercel.app/');
+    res.header('Access-Control-Allow-Origin', 'https://todolist-front-6fcfa8aea561.herokuapp.com/');
     res.status(200).json({ user: null, isAuthenticated: false });
   }
 });
