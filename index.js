@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' }); // Change the destination folder as needed
 const app = express();
 const Task = require('./src/task');
 const User = require('./src/user');
@@ -272,6 +274,43 @@ app.delete('/api/accounts/:id', ensureAuthenticated, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+app.post('/api/accounts/batch', ensureAuthenticated, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const file = req.file;
+    const data = require('fs').readFileSync(file.path);
+    const workbook = XLSX.read(data, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    const parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    const [header, ...rows] = parsedData;
+    const accountsToAdd = rows.map((row) => {
+      const account = {};
+      for (let i = 0; i < header.length; i++) {
+        const columnName = header[i];
+        if (columnMapping[columnName]) {
+          account[columnMapping[columnName]] = row[i];
+        }
+      }
+      return account;
+    });
+
+    const addedAccounts = await Account.insertMany(accountsToAdd);
+    res.status(201).json(addedAccounts);
+  } catch (error) {
+    console.error('Error uploading accounts:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 
 
