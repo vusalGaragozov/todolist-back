@@ -1,8 +1,17 @@
 const mongoose = require('mongoose');
 
 const accountSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+      },
+    userName: {
+        type: String,
+        required: true,
+      },
   report: String,
-  class: String,
+  accountClass: String,
   caption: String,
   fsLine: String,
   currency: String

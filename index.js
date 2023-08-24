@@ -6,6 +6,7 @@ const app = express();
 const Task = require('./src/task');
 const User = require('./src/user');
 const mongoose = require('mongoose');
+const XLSX = require('xlsx');
 const Account = require('./src/accounts')
 const bcrypt = require('bcrypt');
 const passport = require('passport');
@@ -15,6 +16,15 @@ const MongoStore = require('connect-mongodb-session')(session);
 require('dotenv').config({ path: "./.env" });
 
 app.use(express.json());
+
+
+const columnMapping = {
+  'Report': 'report',
+  'Class': 'accountClass',
+  'Caption': 'caption',
+  'FS Line': 'fsLine',
+  'Currency': 'currency'
+};
 
 mongoose
   .connect(process.env.MONGO_URI, {
@@ -75,25 +85,36 @@ app.post('/logout', (req, res) => {
 
 app.post('/api/accounts', ensureAuthenticated, async (req, res) => {
   try {
-    const newAccount = req.body;
-    const account = new Account(newAccount);
-    await account.save();
-    res.status(201).json(account);
+    const { report, accountClass, caption, fsLine, currency } = req.body;
+    const { _id: userId, username: userName } = req.user; // Destructure _id and username
+    const newAccount = new Account({
+      userId,
+      userName,
+      report,
+      accountClass,
+      caption,
+      fsLine,
+      currency
+    });
+    await newAccount.save();
+    res.status(201).json(newAccount);
   } catch (error) {
     console.error('Error adding account:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
+
 app.get('/api/accounts', ensureAuthenticated, async (req, res) => {
   try {
-    const accounts = await Account.find();
-    res.status(200).json(accounts);
+    const userAccounts = await Account.find({ userId: req.user._id });
+    res.status(200).json(userAccounts);
   } catch (error) {
     console.error('Error fetching accounts:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 
 passport.use(
@@ -286,10 +307,15 @@ app.post('/api/accounts/batch', ensureAuthenticated, upload.single('file'), asyn
     const file = req.file;
     const data = require('fs').readFileSync(file.path);
     const workbook = XLSX.read(data, { type: 'buffer' });
+    console.log('Parsed workbook:', workbook);
     const sheetName = workbook.SheetNames[0];
+    console.log('Sheet name:', sheetName);
     const worksheet = workbook.Sheets[sheetName];
+    console.log('Parsed worksheet:', worksheet);
+    
 
     const parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    console.log('Parsed data from Excel:', parsedData);
 
     const [header, ...rows] = parsedData;
     const accountsToAdd = rows.map((row) => {
@@ -308,6 +334,7 @@ app.post('/api/accounts/batch', ensureAuthenticated, upload.single('file'), asyn
   } catch (error) {
     console.error('Error uploading accounts:', error);
     res.status(500).json({ error: error.message });
+    console.error('Error processing Excel data:', error);
   }
 });
 
