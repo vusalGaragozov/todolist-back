@@ -1,12 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' }); // Change the destination folder as needed
 const app = express();
 const Task = require('./src/task');
 const User = require('./src/user');
 const mongoose = require('mongoose');
-const XLSX = require('xlsx');
 const Account = require('./src/accounts')
 const bcrypt = require('bcrypt');
 const passport = require('passport');
@@ -83,26 +80,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.post('/api/accounts', ensureAuthenticated, async (req, res) => {
-  try {
-    const { report, accountClass, caption, fsLine, currency } = req.body;
-    const { _id: userId, username: userName } = req.user; // Destructure _id and username
-    const newAccount = new Account({
-      userId,
-      userName,
-      report,
-      accountClass,
-      caption,
-      fsLine,
-      currency
-    });
-    await newAccount.save();
-    res.status(201).json(newAccount);
-  } catch (error) {
-    console.error('Error adding account:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 
 app.get('/api/accounts', ensureAuthenticated, async (req, res) => {
@@ -115,6 +93,32 @@ app.get('/api/accounts', ensureAuthenticated, async (req, res) => {
   }
 });
 
+// ... Your existing imports ...
+
+app.post('/api/upload-accounts', ensureAuthenticated, async (req, res) => {
+  try {
+    const { accounts } = req.body;
+    const { _id: userId, username: userName } = req.user;
+
+    const validAccounts = accounts.map(account => ({
+      userId,
+      userName,
+      report: account['Report'],
+      accountClass: account['Class'],
+      caption: account['Caption'],
+      fsLine: account['FS Line'],
+      currency: account['Currency']
+    }));
+
+    await Account.insertMany(validAccounts);
+    res.status(201).json({ message: 'Accounts uploaded successfully' });
+  } catch (error) {
+    console.error('Error uploading accounts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ... Your existing routes and server setup ...
 
 
 passport.use(
@@ -296,50 +300,26 @@ app.delete('/api/accounts/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
-
-
-app.post('/api/accounts/batch', ensureAuthenticated, upload.single('file'), async (req, res) => {
+app.post('/api/accounts', ensureAuthenticated, async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
-    const file = req.file;
-    const data = require('fs').readFileSync(file.path);
-    const workbook = XLSX.read(data, { type: 'buffer' });
-    console.log('Parsed workbook:', workbook);
-    const sheetName = workbook.SheetNames[0];
-    console.log('Sheet name:', sheetName);
-    const worksheet = workbook.Sheets[sheetName];
-    console.log('Parsed worksheet:', worksheet);
-    
-
-    const parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-    console.log('Parsed data from Excel:', parsedData);
-
-    const [header, ...rows] = parsedData;
-    const accountsToAdd = rows.map((row) => {
-      const account = {};
-      for (let i = 0; i < header.length; i++) {
-        const columnName = header[i];
-        if (columnMapping[columnName]) {
-          account[columnMapping[columnName]] = row[i];
-        }
-      }
-      return account;
+    const { report, accountClass, caption, fsLine, currency } = req.body;
+    const { _id: userId, username: userName } = req.user; // Destructure _id and username
+    const newAccount = new Account({
+      userId,
+      userName,
+      report,
+      accountClass,
+      caption,
+      fsLine,
+      currency
     });
-
-    const addedAccounts = await Account.insertMany(accountsToAdd);
-    res.status(201).json(addedAccounts);
+    await newAccount.save();
+    res.status(201).json(newAccount);
   } catch (error) {
-    console.error('Error uploading accounts:', error);
+    console.error('Error adding account:', error);
     res.status(500).json({ error: error.message });
-    console.error('Error processing Excel data:', error);
   }
 });
-
-
-
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
