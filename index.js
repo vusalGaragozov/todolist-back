@@ -287,6 +287,17 @@ app.delete('/tasks/:id', ensureAuthenticated, async (req, res) => {
   }
 });
 
+
+app.get('/api/fs-line-values', ensureAuthenticated, async (req, res) => {
+  try {
+    const fsLineValues = await Account.distinct('fsLine', { userId: req.user._id });
+    res.status(200).json(fsLineValues);
+  } catch (error) {
+    console.error('Error fetching fsLine values:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.delete('/api/accounts/:id', ensureAuthenticated, async (req, res) => {
   try {
     const deletedAccount = await Account.findByIdAndRemove(req.params.id);
